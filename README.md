@@ -1,4 +1,6 @@
-# Server monitoring Discord bot Logger
+# Server monitoring Discord Bot Logger
+
+This is a logger used by the [Server Monitoring Discord Bot](https://github.com/NightKey/Server-monitoring-discord-bot) and every module created for it by me.
 
 ## Possible log formats:
 
