@@ -1,0 +1,13 @@
+.backup
+logs*
+data/*.cfg
+*.json
+*__py*
+*.last
+*dist*
+*build*
+*egg-info*
+*folder
+*level
+*update.lg
+*.log
