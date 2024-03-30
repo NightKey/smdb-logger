@@ -10,6 +10,7 @@ This is a logger used by the [Server Monitoring Discord Bot](https://github.com/
 
 ## Available log levels:
 
+ * TRACE
  * DEBUG
  * INFO
  * WARNING
@@ -18,24 +19,30 @@ This is a logger used by the [Server Monitoring Discord Bot](https://github.com/
 
 ## Options:
 
- | Variable name                      | Description                                                         | Default value      |
- |:-----------------------------------|:--------------------------------------------------------------------|:------------------:|
- | log_file                           | The name of the log file                                            | -                  |
- | log_folder                         | The path of the folder to save the log file                         | Current Directory  |
- | clear                              | Clears the log file every time it's initialized                     | False              |
- | level                              | Sets the minimum level for the logger to show                       | INFO               |
- | log_to_console                     | Sets to log to console too                                          | False              |
- | storage_life_extender_mode         | Limits the writes to the file by caching the data                   | False              |
- | max_logfile_size                   | Limits the size of one log file in MB                               | -1 (No limit)      |
- | max_logfile_lifetime               | Limits the time a log file can live (except the currently used one) | -1 (No limit)      |
- | __print                            | Callable for consol logging                                         | stdout.write       |
- | use_caller_name                    | Use the caller's name in consol logging instead of the level        | False              |
- | use_file_names                     | Use the file name whe using the caller name or not                  | True               |
- | level_only_valid_for_console       | Sets to log the unwanted levels but don't display them in console   | False              |
+ | Variable name                      | Description                                                               | Default value      |
+ |:-----------------------------------|:--------------------------------------------------------------------------|:------------------:|
+ | log_file_name                      | The name of the log file                                                  | None               |
+ | log_folder                         | The path of the folder to save the log file                               | Current Directory  |
+ | clear                              | Clears the log file every time it's initialized                           | False              |
+ | level                              | Sets the minimum level for the logger to show                             | INFO               |
+ | log_to_console                     | Sets to log to console too                                                | True              |
+ | storage_life_extender_mode         | Limits the writes to the file by caching the data                         | False              |
+ | max_logfile_size                   | Limits the size of one log file in MB                                     | -1 (No limit)      |
+ | max_logfile_lifetime               | Limits the time a log file can live (except the currently used one)       | -1 (No limit)      |
+ | __print                            | Callable for consol logging                                               | stdout.write       |
+ | __error                            | Callable for consol error logging. None sets to be __print                | stderr.write       |
+ | use_caller_name                    | Use the caller's name in consol logging instead of the level              | False              |
+ | use_file_names                     | Use the file name whe using the caller name or not                        | True               |
+ | level_only_valid_for_console       | Sets to log the unwanted levels but don't display them in console         | False              |
+ | log_disabled                       | Disables logging to everywhere, and disables warning about silent logging | False              |
 
 ## Additional info
 
 The consol logging uses colors for the different levels to be more recognisable at a glance. It also supports headers, after which it indents the logs to add some structure.
+
+### TRACE
+
+ - `#00E6E5`
 
 ### DEBUG
 
@@ -82,6 +89,10 @@ The consol logging uses colors for the different levels to be more recognisable 
 ### header(data, counter = str(datetime.now()), end = "\n")
 
     Creates a HEADER level log entry.
+
+### trace(data, counter = str(datetime.now()), end = "\n")
+
+    Creates a TRACE level log entry.
 
 ### debug(data, counter = str(datetime.now()), end = "\n")
  
