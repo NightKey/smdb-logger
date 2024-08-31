@@ -1,7 +1,7 @@
 from datetime import timedelta, datetime
 from time import time
 import inspect
-from typing import Callable, List
+from typing import Callable, List, Dict, Any
 from enum import Enum
 from os import path, rename, walk, remove, mkdir
 from sys import stdout, stderr
@@ -44,7 +44,7 @@ class COLOR(Enum):
 
 
 class Logger:
-    __slots__ = "log_file_name", "allowed", "log_to_console", "storage_life_extender_mode", "stored_logs", "max_logfile_size", "max_logfile_lifetime", "__print", "__error", "use_caller_name", "use_file_names", "header_used", "log_folder", "level_only_valid_for_console", "log_disabled"
+    __slots__ = "log_file_name", "allowed", "log_to_console", "storage_life_extender_mode", "stored_logs", "max_logfile_size", "max_logfile_lifetime", "__print", "__error", "use_caller_name", "use_file_names", "use_log_name", "header_used", "log_folder", "level_only_valid_for_console", "log_disabled"
 
     def __init__(
         self,
@@ -60,6 +60,7 @@ class Logger:
         __error: Callable = stderr.write,
         use_caller_name: bool = False,
         use_file_names: bool = True,
+        use_log_name: bool = False,
         level_only_valid_for_console: bool = False,
         log_disabled: bool = False
     ) -> None:
@@ -77,6 +78,7 @@ class Logger:
         __error (stderr.write): The function to use to log errors to console. If set to None __print will be used
         use_caller_name (False): Allows the logger to use the caller functions name (with full call path) instead of the level. It only concerns logging to console.
         use_file_names (True): Sets if the file name should be added to the begining of the caller name. It only concerns logging to console.
+        use_log_name (False): Sets if the logger should include the file name name's first part (split at the last '.'), to differenciate between multiple loggers on console only.
         level_only_valid_for_console (False): Sets if the level set is only concerns the logging to console, or to file as well.
         log_disabled (False): Disables logging, and disables warning message about no valid log destination
         """
@@ -93,6 +95,7 @@ class Logger:
         self.__error = __error if __error is not None else __print
         self.use_caller_name = use_caller_name
         self.use_file_names = use_file_names
+        self.use_log_name = use_log_name
         self.header_used = False
         self.level_only_valid_for_console = level_only_valid_for_console
         self.log_disabled = log_disabled
@@ -105,7 +108,7 @@ class Logger:
             with open(path.join(log_folder, log_file_name), "w"):
                 pass
 
-    def get_date(self, timestamp: float = None) -> datetime:
+    def __get_date(self, timestamp: float = None) -> datetime:
         if timestamp is None:
             timestamp = time()
         return datetime.fromtimestamp(timestamp)
@@ -113,7 +116,7 @@ class Logger:
     def __check_logfile(self) -> None:
         if self.max_logfile_size != -1 and path.exists(path.join(self.log_folder, self.log_file_name)) and (path.getsize(path.join(self.log_folder, self.log_file_name)) / (1024 ^ 2)) > self.max_logfile_size:
             tmp = self.log_file_name.split(".")
-            tmp[0] += str(self.get_date().strftime(r"%y.%m.%d-%I"))
+            tmp[0] += str(self.__get_date().strftime(r"%y.%m.%d-%I"))
             new_name = ".".join(tmp)
             rename(path.join(self.log_folder, self.log_file_name),
                    path.join(self.log_folder, new_name))
@@ -123,7 +126,7 @@ class Logger:
         if self.max_logfile_lifetime != -1:
             names = self.__get_all_logfile_names()
             for name in names:
-                if name != self.log_file_name and self.get_date() - self.get_date(path.getctime(name)) > timedelta(days=self.max_logfile_lifetime):
+                if name != self.log_file_name and self.__get_date() - self.__get_date(path.getctime(name)) > timedelta(days=self.max_logfile_lifetime):
                     remove(name)
 
     def __get_all_logfile_names(self) -> List[str]:
@@ -164,20 +167,31 @@ class Logger:
                 caller = f"{frame.function}->{caller}"
         return f"{previous_filename}->{caller}" if self.use_file_names else caller
 
+    def __get_log_message(self, components: Dict[Any, str]) -> str:
+        string = components[0]
+        string += f" [{components['counter']}]"
+        string += f" [{components[1]}]"
+        string += f" [{components[3]}]"
+        string += f": {components['data']}"
+        return string.replace(' []', '').strip()
+
     def __log(self, level: LEVEL, data: str, counter: str, end: str) -> None:
         if self.log_disabled: return
         if counter is None:
-            counter = str(self.get_date().strftime(r"%Y.%m.%d-%H:%M:%S"))
-        log_msg = f"[{counter}] [{level.value}]: {data}"
+            counter = str(self.__get_date().strftime(r"%Y.%m.%d-%H:%M:%S"))
+        log_components = {0: "", 1: "", "counter": counter, 3: level, "data": data}
         if self.header_used and level != LEVEL.HEADER:
-            log_msg = f"\t{log_msg}"
+            log_components[0] = "\t"
         if self.level_only_valid_for_console or level in self.allowed:
-            self.__log_to_file(log_msg)
+            self.__log_to_file(self.__get_log_message(log_components))
         if self.log_to_console and level in self.allowed and level is not LEVEL.HEADER:
             if self.use_caller_name:
                 caller = self.__get_caller_name()
-                log_msg = f"[{counter}] [{caller}]: {data}"
-            msg = f"{COLOR.from_level(level).value}{log_msg}{COLOR.END.value}{end}"
+                log_components[3] = caller
+            if self.use_log_name:
+                name = '.'.join(self.log_file_name.split('.')[:-1])
+                log_components[1] = name
+            msg = f"{COLOR.from_level(level).value}{self.__get_log_message(log_components)}{COLOR.END.value}{end}"
             if level == LEVEL.ERROR:
                 self.__error(msg)
             else:
@@ -221,11 +235,7 @@ class Logger:
             self.header(data, counter, end)
 
     def header(self, data: str, counter: str = None, end: str = "\n") -> None:
-        decor = list("="*40)
-        decor.insert(int(20-len(data) / 2), data)
-        final_decor = decor[0:int(20-len(data) / 2) + 1]
-        final_decor.extend(decor[int((20-len(data) / 2) + len(data)):])
-        self.__log(LEVEL.HEADER, "".join(final_decor), counter, end)
+        self.__log(LEVEL.HEADER, f"{data:=^40}", counter, end)
         self.header_used = True
 
     def trace(self, data: str, counter: str = None, end: str = "\n") -> None:
