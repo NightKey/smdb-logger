@@ -1,11 +1,11 @@
 from datetime import timedelta, datetime
 from time import time
 import inspect
-from typing import Callable, List, Dict, Any
+from threading import Thread
+from typing import Callable, List, Dict, Any, Union
 from enum import Enum
 from os import path, rename, walk, remove, mkdir
 from sys import stdout, stderr
-from shutil import move
 
 
 class LEVEL(Enum):
@@ -44,7 +44,7 @@ class COLOR(Enum):
 
 
 class Logger:
-    __slots__ = "log_file_name", "allowed", "log_to_console", "storage_life_extender_mode", "stored_logs", "max_logfile_size", "max_logfile_lifetime", "__print", "__error", "use_caller_name", "use_file_names", "use_log_name", "header_used", "log_folder", "level_only_valid_for_console", "log_disabled"
+    __slots__ = "log_file_name", "allowed", "log_to_console", "storage_life_extender_mode", "stored_logs", "max_logfile_size", "max_logfile_lifetime", "__print", "__error", "use_caller_name", "use_file_names", "use_log_name", "header_used", "log_folder", "level_only_valid_for_console", "log_async", "log_disabled", "log_thread_count"
 
     def __init__(
         self,
@@ -62,6 +62,7 @@ class Logger:
         use_file_names: bool = True,
         use_log_name: bool = False,
         level_only_valid_for_console: bool = False,
+        log_async: bool = False,
         log_disabled: bool = False
     ) -> None:
         """
@@ -98,6 +99,8 @@ class Logger:
         self.use_log_name = use_log_name
         self.header_used = False
         self.level_only_valid_for_console = level_only_valid_for_console
+        self.log_async = log_async
+        self.log_thread_count = 0
         self.log_disabled = log_disabled
         if self.log_file_name is None and not self.log_to_console and not self.log_disabled:
             self.log_to_console = True
@@ -176,7 +179,7 @@ class Logger:
         return string.replace(' []', '').strip()
 
     def __log(self, level: LEVEL, data: str, counter: str, end: str) -> None:
-        if self.log_disabled: return
+        if level not in self.allowed and not self.level_only_valid_for_console: return
         if counter is None:
             counter = str(self.__get_date().strftime(r"%Y.%m.%d-%H:%M:%S"))
         log_components = {0: "", 1: "", "counter": counter, 3: level, "data": data}
@@ -196,6 +199,18 @@ class Logger:
                 self.__error(msg)
             else:
                 self.__print(msg)
+
+    def __threaded_log(self, level: LEVEL, data: str, counter: str, end: str) -> None:
+        self.__log(level, data, counter, end)
+        self.log_thread_count -= 1
+
+    def __log_common(self, level: LEVEL, data: str, counter: str, end: str) -> None:
+        if self.log_disabled: return
+        if self.log_async:
+            Thread(target=self.__threaded_log, args=[level, data, counter, end,], name=f"Async logging thread {self.log_thread_count}").start()
+            self.log_thread_count += 1
+        else:
+            self.__log(level, data, counter, end)
 
     def get_buffer(self) -> List[str]:
         return self.stored_logs if self.storage_life_extender_mode else []
@@ -220,13 +235,13 @@ class Logger:
             raise IOError(
                 "Argument `log_folder` can only reffer to a directory!")
 
-    def log(self, level: LEVEL, data: str, counter: str = None, end: str = "\n") -> None:
+    def log(self, level: LEVEL, data: str, exception: Union[Exception, None] = None, counter: Union[str, None] = None, end: str = "\n") -> None:
         if level == LEVEL.INFO:
             self.info(data, counter, end)
         elif level == LEVEL.WARNING:
             self.warning(data, counter, end)
         elif level == LEVEL.ERROR:
-            self.error(data, counter, end)
+            self.error(data, exception, counter, end)
         elif level == LEVEL.DEBUG:
             self.debug(data, counter, end)
         elif level == LEVEL.TRACE:
@@ -235,20 +250,21 @@ class Logger:
             self.header(data, counter, end)
 
     def header(self, data: str, counter: str = None, end: str = "\n") -> None:
-        self.__log(LEVEL.HEADER, f"{data:=^40}", counter, end)
+        self.__log_common(LEVEL.HEADER, f"{data:=^40}", counter, end)
         self.header_used = True
 
     def trace(self, data: str, counter: str = None, end: str = "\n") -> None:
-        self.__log(LEVEL.TRACE, data, counter, end)
+        self.__log_common(LEVEL.TRACE, data, counter, end)
 
     def debug(self, data: str, counter: str = None, end: str = "\n") -> None:
-        self.__log(LEVEL.DEBUG, data, counter, end)
+        self.__log_common(LEVEL.DEBUG, data, counter, end)
 
     def warning(self, data: str, counter: str = None, end: str = "\n") -> None:
-        self.__log(LEVEL.WARNING, data, counter, end)
+        self.__log_common(LEVEL.WARNING, data, counter, end)
 
     def info(self, data: str, counter: str = None, end: str = "\n") -> None:
-        self.__log(LEVEL.INFO, data, counter, end)
+        self.__log_common(LEVEL.INFO, data, counter, end)
 
-    def error(self, data: str, counter: str = None, end: str = "\n") -> None:
-        self.__log(LEVEL.ERROR, data, counter, end)
+    def error(self, data: str, exception: Union[Exception, None] = None, counter: Union[str, None] = None, end: str = "\n") -> None:
+        self.__log_common(LEVEL.ERROR, data, counter, end)
+        if (exception != None): self.__log_common(LEVEL.ERROR, exception.__traceback__, counter, end)
