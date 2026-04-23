@@ -15,6 +15,7 @@ This is a logger used by the [Server Monitoring Discord Bot](https://github.com/
  * INFO
  * WARNING
  * ERROR
+ * EXCEPTION
  * HEADER
 
 ## Options:
@@ -57,7 +58,7 @@ The consol logging uses colors for the different levels to be more recognisable 
 
  - `#FEFF00`
 
-### ERROR
+### ERROR | EXCEPTION
 
  - `#FF0000`
 
@@ -75,39 +76,42 @@ The consol logging uses colors for the different levels to be more recognisable 
 
     Forces a writes of the buffer to the log file.
 
-### set_level(level)
+### set_level(level: LEVEL)
 
     Sets the loggers leve to be used from this point onwards.
 
-### set_folder(folder)
+### set_folder(folder: str)
 
     Sets the loggers folder to be used from thi point. It also runs the basic validation on the inputed path.
 
-### log(level, data, counter = str(datetime.now()), end = "\n")
+### log(level: LEVEL, data: str, counter: str | None = str(datetime.now()), end: str = "\n")
 
     Creates a log entry with the given level.
 
-### header(data, counter = str(datetime.now()), end = "\n")
+### header(data: str, counter: str | None = str(datetime.now()), end: str = "\n")
 
     Creates a HEADER level log entry.
 
-### trace(data, counter = str(datetime.now()), end = "\n")
+### trace(data: str, counter: str | None = str(datetime.now()), end: str = "\n")
 
     Creates a TRACE level log entry.
 
-### debug(data, counter = str(datetime.now()), end = "\n")
+### debug(data: str, counter: str | None = str(datetime.now()), end: str = "\n")
  
     Creates a DEBUG level log entry.
 
-### warning(data, counter = str(datetime.now()), end = "\n")
+### warning(data: str, counter: str | None = str(datetime.now()), end: str = "\n")
 
     Creates a WARNING level log entry.
 
-### info(data, counter = str(datetime.now()), end = "\n")
+### info(data: str, counter: str | None = str(datetime.now()), end: str = "\n")
 
     Creates a INFO level log entry.
 
-### error(data, counter = str(datetime.now()), end = "\n")
+### error(data: str, exception: Exception | None = None counter: str | None = str(datetime.now()), end: str = "\n")
 
     Creates a ERROR level log entry.
  
+### exception(exception: Exception)
+
+    Creates an EXCEPTION level log entry. This will only print the exception as a traceback.

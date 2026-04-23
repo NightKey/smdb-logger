@@ -1,10 +1,11 @@
 import inspect
+import traceback
 from datetime import datetime, timedelta
 from time import time
 from os import path, rename, remove, walk, mkdir
 from sys import stdout, stderr
 from threading import Thread
-from typing import List, Dict, Any, Union, Callable
+from typing import List, Dict, Any, Union, Callable, Optional
 
 from smdb_logger import LEVEL, COLOR
 
@@ -136,15 +137,17 @@ class Logger:
                 caller = f"{frame.function}->{caller}"
         return f"{previous_filename}->{caller}" if self.use_file_names else caller
 
-    def __get_log_message(self, components: Dict[Any, str]) -> str:
-        string = components[0]
-        string += f" [{components['counter']}]"
-        string += f" [{components[1]}]"
-        string += f" [{components[3]}]"
+    def __get_log_message(self, components: Dict[Any, str], level: LEVEL) -> str:
+        string = ""
+        if level != LEVEL.EXCEPTION:
+            string += components[0]
+            string += f" [{components['counter']}]"
+            string += f" [{components[1]}]"
+            string += f" [{components[3]}]"
         string += f": {components['data']}"
         return string.replace(' []', '').strip()
 
-    def __log(self, level: LEVEL, data: str, counter: str, end: str) -> None:
+    def __log(self, level: LEVEL, data: str, counter: Union[str, None], end: str) -> None:
         if level not in self.allowed and not self.level_only_valid_for_console: return
         if counter is None:
             counter = str(self.__get_date().strftime(r"%Y.%m.%d-%H:%M:%S"))
@@ -152,7 +155,7 @@ class Logger:
         if self.header_used and level != LEVEL.HEADER:
             log_components[0] = "\t"
         if self.level_only_valid_for_console or level in self.allowed:
-            self.__log_to_file(self.__get_log_message(log_components))
+            self.__log_to_file(self.__get_log_message(log_components, level))
         if self.log_to_console and level in self.allowed and level is not LEVEL.HEADER:
             if self.use_caller_name:
                 caller = self.__get_caller_name()
@@ -160,7 +163,7 @@ class Logger:
             if self.use_log_name:
                 name = '.'.join(self.log_file_name.split('.')[:-1])
                 log_components[1] = name
-            msg = f"{COLOR.from_level(level).value}{self.__get_log_message(log_components)}{COLOR.END.value}{end}"
+            msg = f"{COLOR.from_level(level).value}{self.__get_log_message(log_components, level)}{COLOR.END.value}{end}"
             if level == LEVEL.ERROR:
                 self.__error(msg)
             else:
@@ -170,7 +173,7 @@ class Logger:
         self.__log(level, data, counter, end)
         self.log_thread_count -= 1
 
-    def __log_common(self, level: LEVEL, data: str, counter: str, end: str) -> None:
+    def __log_common(self, level: LEVEL, data: str, counter: Union[str, None], end: str) -> None:
         if self.log_disabled: return
         if self.log_async:
             Thread(target=self.__threaded_log, args=[level, data, counter, end,], name=f"Async logging thread {self.log_thread_count}").start()
@@ -198,8 +201,7 @@ class Logger:
                 log_folder = path.join(path.curdir, log_folder)
             mkdir(log_folder)
         elif not path.isdir(log_folder):
-            raise IOError(
-                "Argument `log_folder` can only reffer to a directory!")
+            raise IOError("Argument `log_folder` can only refer to a directory!")
 
     def log(self, level: LEVEL, data: str, exception: Union[Exception, None] = None, counter: Union[str, None] = None, end: str = "\n") -> None:
         if level == LEVEL.INFO:
@@ -215,22 +217,25 @@ class Logger:
         else:
             self.header(data, counter, end)
 
-    def header(self, data: str, counter: str = None, end: str = "\n") -> None:
+    def header(self, data: str, counter: Union[str, None] = None, end: str = "\n") -> None:
         self.__log_common(LEVEL.HEADER, f"{data:=^40}", counter, end)
         self.header_used = True
 
-    def trace(self, data: str, counter: str = None, end: str = "\n") -> None:
+    def trace(self, data: str, counter: Union[str, None] = None, end: str = "\n") -> None:
         self.__log_common(LEVEL.TRACE, data, counter, end)
 
-    def debug(self, data: str, counter: str = None, end: str = "\n") -> None:
+    def debug(self, data: str, counter: Union[str, None] = None, end: str = "\n") -> None:
         self.__log_common(LEVEL.DEBUG, data, counter, end)
 
-    def warning(self, data: str, counter: str = None, end: str = "\n") -> None:
+    def warning(self, data: str, counter: Union[str, None] = None, end: str = "\n") -> None:
         self.__log_common(LEVEL.WARNING, data, counter, end)
 
-    def info(self, data: str, counter: str = None, end: str = "\n") -> None:
+    def info(self, data: str, counter: Union[str, None] = None, end: str = "\n") -> None:
         self.__log_common(LEVEL.INFO, data, counter, end)
 
     def error(self, data: str, exception: Union[Exception, None] = None, counter: Union[str, None] = None, end: str = "\n") -> None:
         self.__log_common(LEVEL.ERROR, data, counter, end)
-        if exception is not None: self.__log_common(LEVEL.ERROR, exception.__traceback__, counter, end)
+        if exception is not None: self.__log_common(LEVEL.EXCEPTION, ''.join(traceback.format_exception(None, exception, exception.__traceback__)), counter, end)
+
+    def exception(self, exception: Exception) -> None:
+        self.__log_common(LEVEL.EXCEPTION, ''.join(traceback.format_exception(None, exception, exception.__traceback__)), None, "\n")

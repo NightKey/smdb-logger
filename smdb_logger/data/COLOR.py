@@ -6,6 +6,7 @@ from smdb_logger.data import LEVEL
 class COLOR(Enum):
     INFO = "\033[92m"
     ERROR = "\033[91m"
+    EXCEPTION = "\033[91m"
     WARNING = "\033[93m"
     HEADER = "\033[94m"
     DEBUG = "\033[95m"
