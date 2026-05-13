@@ -20,27 +20,27 @@ This is a logger used by the [Server Monitoring Discord Bot](https://github.com/
 
 ## Options:
 
- | Variable name                      | Description                                                                | Default value      |
- |:-----------------------------------|:---------------------------------------------------------------------------|:------------------:|
- | log_file_name                      | The name of the log file                                                   | None               |
- | log_folder                         | The path of the folder to save the log file                                | Current Directory  |
- | clear                              | Clears the log file every time it's initialized                            | False              |
- | level                              | Sets the minimum level for the logger to show                              | INFO               |
- | log_to_console                     | Sets to log to console too                                                 | True               |
- | storage_life_extender_mode         | Limits the writes to the file by caching the data                          | False              |
- | max_logfile_size                   | Limits the size of one log file in MB                                      | -1 (No limit)      |
- | max_logfile_lifetime               | Limits the time a log file can live (except the currently used one)        | -1 (No limit)      |
- | __print                            | Callable for consol logging                                                | stdout.write       |
- | __error                            | Callable for consol error logging. None sets to be __print                 | stderr.write       |
- | use_caller_name                    | Use the caller's name in consol logging instead of the level               | False              |
- | use_file_names                     | Use the file name whe using the caller name or not                         | True               |
- | use_log_name                      | Use the log file name to differenciate between multiple loggers on console | False              |
- | level_only_valid_for_console       | Sets to log the unwanted levels but don't display them in console          | False              |
- | log_disabled                       | Disables logging to everywhere, and disables warning about silent logging  | False              |
+ | Variable name                       | Description                                                                      |   Default value    |
+ |:------------------------------------|:---------------------------------------------------------------------------------|:------------------:|
+ | log_file_name                       | The name of the log file                                                         |        None        |
+ | log_folder                          | The path of the folder to save the log file                                      | Current Directory  |
+ | clear                               | Clears the log file every time it's initialized                                  |       False        |
+ | level                               | Sets the minimum level for the logger to show                                    |        INFO        |
+ | log_to_console                      | Sets to log to console too                                                       |        True        |
+ | storage_life_extender_mode          | Limits the writes to the file by caching the data                                |       False        |
+ | max_logfile_size                    | Limits the size of one log file in MB                                            |   -1 (No limit)    |
+ | max_logfile_lifetime                | Limits the time a log file can live (except the currently used one)              |   -1 (No limit)    |
+ | __print                             | Callable for consol logging                                                      |    stdout.write    |
+ | __error                             | Callable for consol error logging. None sets to be __print                       |    stderr.write    |
+ | use_caller_name                     | Use the caller's name in consol logging instead of the level                     |       False        |
+ | use_file_names                      | Use the file name whe using the caller name or not                               |        True        |
+ | use_log_name                        | Use the log file name to differenciate between multiple loggers on console       |       False        |
+ | level_only_valid_for_console        | Setting this will log the unwanted levels but will not display them in console   |       False        |
+ | log_disabled                        | Disables logging to everywhere, and disables warning about silent logging        |       False        |
 
 ## Additional info
 
-The consol logging uses colors for the different levels to be more recognisable at a glance. It also supports headers, after which it indents the logs to add some structure.
+The consol logging uses colors for the different levels to be more recognizable at a glance. It also supports headers, after which it indents the logs to add some structure.
 
 ### TRACE
 
@@ -84,31 +84,32 @@ The consol logging uses colors for the different levels to be more recognisable 
 
     Sets the loggers folder to be used from thi point. It also runs the basic validation on the inputed path.
 
-### log(level: LEVEL, data: str, counter: str | None = str(datetime.now()), end: str = "\n")
+### log(level: LEVEL, data: str, counter: str | None = str(datetime.now()), end: str = "\n", only_console: bool = False)
 
     Creates a log entry with the given level.
+    The 'only_console' argument will remove the log from logfile, and only display the 'data' with the correct coloring.
 
-### header(data: str, counter: str | None = str(datetime.now()), end: str = "\n")
+### header(data: str, counter: str | None = str(datetime.now()), end: str = "\n", only_console: bool = False)
 
     Creates a HEADER level log entry.
 
-### trace(data: str, counter: str | None = str(datetime.now()), end: str = "\n")
+### trace(data: str, counter: str | None = str(datetime.now()), end: str = "\n", only_console: bool = False)
 
     Creates a TRACE level log entry.
 
-### debug(data: str, counter: str | None = str(datetime.now()), end: str = "\n")
+### debug(data: str, counter: str | None = str(datetime.now()), end: str = "\n", only_console: bool = False)
  
     Creates a DEBUG level log entry.
 
-### warning(data: str, counter: str | None = str(datetime.now()), end: str = "\n")
+### warning(data: str, counter: str | None = str(datetime.now()), end: str = "\n", only_console: bool = False)
 
     Creates a WARNING level log entry.
 
-### info(data: str, counter: str | None = str(datetime.now()), end: str = "\n")
+### info(data: str, counter: str | None = str(datetime.now()), end: str = "\n", only_console: bool = False)
 
     Creates a INFO level log entry.
 
-### error(data: str, exception: Exception | None = None counter: str | None = str(datetime.now()), end: str = "\n")
+### error(data: str, exception: Exception | None = None counter: str | None = str(datetime.now()), end: str = "\n", only_console: bool = False)
 
     Creates a ERROR level log entry.
  

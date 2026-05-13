@@ -147,14 +147,14 @@ class Logger:
         string += f": {components['data']}"
         return string.replace(' []', '').strip()
 
-    def __log(self, level: LEVEL, data: str, counter: Union[str, None], end: str) -> None:
+    def __log(self, level: LEVEL, data: str, counter: Union[str, None], end: str, only_console: bool) -> None:
         if level not in self.allowed and not self.level_only_valid_for_console: return
         if counter is None:
             counter = str(self.__get_date().strftime(r"%Y.%m.%d-%H:%M:%S"))
         log_components = {0: "", 1: "", "counter": counter, 3: level, "data": data}
         if self.header_used and level != LEVEL.HEADER:
             log_components[0] = "\t"
-        if self.level_only_valid_for_console or level in self.allowed:
+        if not only_console and (self.level_only_valid_for_console or level in self.allowed):
             self.__log_to_file(self.__get_log_message(log_components, level))
         if self.log_to_console and level in self.allowed and level is not LEVEL.HEADER:
             if self.use_caller_name:
@@ -164,6 +164,8 @@ class Logger:
                 name = '.'.join(self.log_file_name.split('.')[:-1])
                 log_components[1] = name
             msg = f"{COLOR.from_level(level).value}{self.__get_log_message(log_components, level)}{COLOR.END.value}{end}"
+            if only_console:
+                msg = f"{COLOR.from_level(level).value}{data}{COLOR.END.value}"
             if level == LEVEL.ERROR:
                 self.__error(msg)
             else:
@@ -173,13 +175,13 @@ class Logger:
         self.__log(level, data, counter, end)
         self.log_thread_count -= 1
 
-    def __log_common(self, level: LEVEL, data: str, counter: Union[str, None], end: str) -> None:
+    def __log_common(self, level: LEVEL, data: str, counter: Union[str, None], end: str, only_console: bool) -> None:
         if self.log_disabled: return
         if self.log_async:
-            Thread(target=self.__threaded_log, args=[level, data, counter, end,], name=f"Async logging thread {self.log_thread_count}").start()
+            Thread(target=self.__threaded_log, args=[level, data, counter, end,only_console,], name=f"Async logging thread {self.log_thread_count}").start()
             self.log_thread_count += 1
         else:
-            self.__log(level, data, counter, end)
+            self.__log(level, data, counter, end, only_console)
 
     def get_buffer(self) -> List[str]:
         return self.stored_logs if self.storage_life_extender_mode else []
@@ -203,39 +205,39 @@ class Logger:
         elif not path.isdir(log_folder):
             raise IOError("Argument `log_folder` can only refer to a directory!")
 
-    def log(self, level: LEVEL, data: str, exception: Union[Exception, None] = None, counter: Union[str, None] = None, end: str = "\n") -> None:
+    def log(self, level: LEVEL, data: str, exception: Union[Exception, None] = None, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
         if level == LEVEL.INFO:
-            self.info(data, counter, end)
+            self.info(data, counter, end, only_console)
         elif level == LEVEL.WARNING:
-            self.warning(data, counter, end)
+            self.warning(data, counter, end, only_console)
         elif level == LEVEL.ERROR:
-            self.error(data, exception, counter, end)
+            self.error(data, exception, counter, end, only_console)
         elif level == LEVEL.DEBUG:
-            self.debug(data, counter, end)
+            self.debug(data, counter, end, only_console)
         elif level == LEVEL.TRACE:
-            self.trace(data, counter, end)
+            self.trace(data, counter, end, only_console)
         else:
-            self.header(data, counter, end)
+            self.header(data, counter, end, only_console)
 
-    def header(self, data: str, counter: Union[str, None] = None, end: str = "\n") -> None:
-        self.__log_common(LEVEL.HEADER, f"{data:=^40}", counter, end)
+    def header(self, data: str, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
+        self.__log_common(LEVEL.HEADER, f"{data:=^40}", counter, end, only_console)
         self.header_used = True
 
-    def trace(self, data: str, counter: Union[str, None] = None, end: str = "\n") -> None:
-        self.__log_common(LEVEL.TRACE, data, counter, end)
+    def trace(self, data: str, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
+        self.__log_common(LEVEL.TRACE, data, counter, end, only_console)
 
-    def debug(self, data: str, counter: Union[str, None] = None, end: str = "\n") -> None:
-        self.__log_common(LEVEL.DEBUG, data, counter, end)
+    def debug(self, data: str, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
+        self.__log_common(LEVEL.DEBUG, data, counter, end, only_console)
 
-    def warning(self, data: str, counter: Union[str, None] = None, end: str = "\n") -> None:
-        self.__log_common(LEVEL.WARNING, data, counter, end)
+    def warning(self, data: str, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
+        self.__log_common(LEVEL.WARNING, data, counter, end, only_console)
 
-    def info(self, data: str, counter: Union[str, None] = None, end: str = "\n") -> None:
-        self.__log_common(LEVEL.INFO, data, counter, end)
+    def info(self, data: str, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
+        self.__log_common(LEVEL.INFO, data, counter, end, only_console)
 
-    def error(self, data: str, exception: Union[Exception, None] = None, counter: Union[str, None] = None, end: str = "\n") -> None:
-        self.__log_common(LEVEL.ERROR, data, counter, end)
-        if exception is not None: self.__log_common(LEVEL.EXCEPTION, ''.join(traceback.format_exception(None, exception, exception.__traceback__)), counter, end)
+    def error(self, data: str, exception: Union[BaseException, None] = None, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
+        self.__log_common(LEVEL.ERROR, data, counter, end, only_console)
+        if exception is not None: self.__log_common(LEVEL.EXCEPTION, ''.join(traceback.format_exception(None, exception, exception.__traceback__)), counter, end, False)
 
     def exception(self, exception: Exception) -> None:
-        self.__log_common(LEVEL.EXCEPTION, ''.join(traceback.format_exception(None, exception, exception.__traceback__)), None, "\n")
+        self.__log_common(LEVEL.EXCEPTION, ''.join(traceback.format_exception(None, exception, exception.__traceback__)), None, "\n", False)
