@@ -8,6 +8,8 @@ This is a logger used by the [Server Monitoring Discord Bot](https://github.com/
  * [COUNTER] [FILE_NAME->METHOD_1->...->CALLER]: DATA{END}
  * [COUNTER] [METHOD_1->...->CALLER]: DATA{END}
 
+If the caller name is shown and the caller was the body of the file, a line number will be shown instead.
+
 ## Available log levels:
 
  * TRACE

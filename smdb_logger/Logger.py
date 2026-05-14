@@ -120,13 +120,20 @@ class Logger:
         self.__check_logfile()
 
     def __get_caller_name(self):
-        frames = inspect.getouterframes(
-            inspect.currentframe().f_back.f_back, 2)
-        caller = f"{frames[1].function if frames[1].function != 'log' else frames[2].function}"
-        start = 3 if frames[1].function == "log" else 2
-        previous_filename = path.basename(frames[start-1].filename)
+        frames = inspect.getouterframes(inspect.currentframe().f_back.f_back, 8)
+        caller = ""
+        start = 0
+        index = 0
+        while index < len(frames):
+            frame = frames[index]
+            if path.basename(frame.filename) != "Logger.py":
+                caller = frame.function
+                start = index
+                break
+            index += 1
+        previous_filename = path.basename(frames[start].filename)
         if caller == "<module>":
-            return previous_filename
+            return f"{previous_filename}->line {frames[start].lineno}" if self.use_file_names else f"line {frames[start].lineno}"
         for frame in frames[start:]:
             if frame.function in ["<module>", "_run_event", "_run_once", "_bootstrap_inner"] or path.basename(frame.filename) in ["threading.py"]:
                 break
@@ -156,7 +163,7 @@ class Logger:
             log_components[0] = "\t"
         if not only_console and (self.level_only_valid_for_console or level in self.allowed):
             self.__log_to_file(self.__get_log_message(log_components, level))
-        if self.log_to_console and level in self.allowed and level is not LEVEL.HEADER:
+        if self.log_to_console and level in self.allowed:
             if self.use_caller_name:
                 caller = self.__get_caller_name()
                 log_components[3] = caller
@@ -171,14 +178,14 @@ class Logger:
             else:
                 self.__print(msg)
 
-    def __threaded_log(self, level: LEVEL, data: str, counter: str, end: str) -> None:
-        self.__log(level, data, counter, end)
+    def __threaded_log(self, level: LEVEL, data: str, counter: str, end: str, only_console: bool) -> None:
+        self.__log(level, data, counter, end, only_console)
         self.log_thread_count -= 1
 
     def __log_common(self, level: LEVEL, data: str, counter: Union[str, None], end: str, only_console: bool) -> None:
         if self.log_disabled: return
         if self.log_async:
-            Thread(target=self.__threaded_log, args=[level, data, counter, end,only_console,], name=f"Async logging thread {self.log_thread_count}").start()
+            Thread(target=self.__threaded_log, args=[level, data, counter, end, only_console,], name=f"Async logging thread {self.log_thread_count}").start()
             self.log_thread_count += 1
         else:
             self.__log(level, data, counter, end, only_console)
