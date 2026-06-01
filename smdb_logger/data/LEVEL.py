@@ -13,7 +13,7 @@ class LEVEL(Enum):
 
     @staticmethod
     def from_string(string: str) -> 'LEVEL':
-        for lvl in [LEVEL.DEBUG, LEVEL.INFO, LEVEL.WARNING, LEVEL.ERROR, LEVEL.EXCEPTION, LEVEL.HEADER]:
+        for lvl in [LEVEL.TRACE, LEVEL.DEBUG, LEVEL.INFO, LEVEL.WARNING, LEVEL.ERROR, LEVEL.EXCEPTION, LEVEL.HEADER]:
             if lvl.value.lower() == string.lower():
                 return lvl
         return None
