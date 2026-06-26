@@ -236,6 +236,16 @@ class Logger:
             raise IOError("Argument `log_folder` can only refer to a directory!")
 
     def log(self, level: LEVEL, data: str, exception: Union[Exception, None] = None, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
+        """
+        Creates a `level` logentry
+        :param level: The level of the logentry
+        :param data: The data to be logged
+        :param exception: Exception thrown to be logged. If provided, an exception level log will follow.
+        :param counter: Value unique to this print (Default is Date-Time in this format: %Y.%m.%d-%H:%M:%S)
+        :param end: Value to be printed at last (Default is line-break)
+        :param only_console: Flag if this should be saved to log-file or not (Default value is False)
+        :return:
+        """
         if level == LEVEL.INFO:
             self.info(data, counter, end, only_console)
         elif level == LEVEL.WARNING:
@@ -250,24 +260,88 @@ class Logger:
             self.header(data, counter, end, only_console)
 
     def header(self, data: str, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
+        """
+        Creates a header
+        :param data: Data to be shown
+        :param counter: Value unique to this print (Default is Date-Time in this format: %Y.%m.%d-%H:%M:%S)
+        :param end: Value to be printed at last (Default is line-break)
+        :param only_console: Flag if this should be saved to log-file or not (Default value is False)
+        :return:
+        """
         self.__log_common(LEVEL.HEADER, f"{data:=^40}", counter, end, only_console)
         self.header_used = True
 
+    def heartbeat(self, data: str, counter: Union[str, None] = None, end: str = "\n") -> None:
+        """
+        Only shows in console
+        :param data: Data to be shown
+        :param counter: Value unique to this print (Default is Date-Time in this format: %Y.%m.%d-%H:%M:%S)
+        :param end: Value to be printed at last (Default is line-break)
+        :return:
+        """
+        self.__log_common(LEVEL.TRACE, data, counter, end, only_console=True)
+
     def trace(self, data: str, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
+        """
+        Creates a trace log
+        :param data: Data to be shown
+        :param counter: Value unique to this print (Default is Date-Time in this format: %Y.%m.%d-%H:%M:%S)
+        :param end: Value to be printed at last (Default is line-break)
+        :param only_console: Flag if this should be saved to log-file or not (Default value is False)
+        :return:
+        """
         self.__log_common(LEVEL.TRACE, data, counter, end, only_console)
 
     def debug(self, data: str, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
+        """
+        Creates a debug log
+        :param data: Data to be shown
+        :param counter: Value unique to this print (Default is Date-Time in this format: %Y.%m.%d-%H:%M:%S)
+        :param end: Value to be printed at last (Default is line-break)
+        :param only_console: Flag if this should be saved to log-file or not (Default value is False)
+        :return:
+        """
         self.__log_common(LEVEL.DEBUG, data, counter, end, only_console)
 
     def warning(self, data: str, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
+        """
+        Creates a warning log
+        :param data: Data to be shown
+        :param counter: Value unique to this print (Default is Date-Time in this format: %Y.%m.%d-%H:%M:%S)
+        :param end: Value to be printed at last (Default is line-break)
+        :param only_console: Flag if this should be saved to log-file or not (Default value is False)
+        :return:
+        """
         self.__log_common(LEVEL.WARNING, data, counter, end, only_console)
 
     def info(self, data: str, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
+        """
+        Creates an info log
+        :param data: Data to be shown
+        :param counter: Value unique to this print (Default is Date-Time in this format: %Y.%m.%d-%H:%M:%S)
+        :param end: Value to be printed at last (Default is line-break)
+        :param only_console: Flag if this should be saved to log-file or not (Default value is False)
+        :return:
+        """
         self.__log_common(LEVEL.INFO, data, counter, end, only_console)
 
     def error(self, data: str, exception: Union[BaseException, None] = None, counter: Union[str, None] = None, end: str = "\n", only_console: bool = False) -> None:
+        """
+        Creates an error log
+        :param data: Data to be shown
+        :param exception: Exception thrown to be logged. If provided, an exception level log will follow.
+        :param counter: Value unique to this print (Default is Date-Time in this format: %Y.%m.%d-%H:%M:%S)
+        :param end: Value to be printed at last (Default is line-break)
+        :param only_console: Flag if this should be saved to log-file or not (Default value is False)
+        :return:
+        """
         self.__log_common(LEVEL.ERROR, data, counter, end, only_console)
         if exception is not None: self.__log_common(LEVEL.EXCEPTION, ''.join(traceback.format_exception(None, exception, exception.__traceback__)), counter, end, False)
 
     def exception(self, exception: Exception) -> None:
+        """
+        Creates an exception log
+        :param exception: The exception object to be logged
+        :return:
+        """
         self.__log_common(LEVEL.EXCEPTION, ''.join(traceback.format_exception(None, exception, exception.__traceback__)), None, "\n", False)
