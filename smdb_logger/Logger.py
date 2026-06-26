@@ -11,7 +11,27 @@ from smdb_logger import LEVEL, COLOR
 
 
 class Logger:
-    __slots__ = "log_file_name", "allowed", "log_to_console", "storage_life_extender_mode", "stored_logs", "max_logfile_size", "max_logfile_lifetime", "__print", "__error", "use_caller_name", "use_file_names", "use_log_name", "header_used", "log_folder", "level_only_valid_for_console", "log_async", "log_disabled", "log_thread_count"
+    __slots__ = (
+        "log_file_name",
+        "allowed",
+        "log_to_console",
+        "storage_life_extender_mode",
+        "stored_logs",
+        "max_logfile_size",
+        "max_logfile_lifetime",
+        "__print",
+        "__error",
+        "use_caller_name",
+        "use_file_names",
+        "use_log_name",
+        "header_used",
+        "log_folder",
+        "level_only_valid_for_console",
+        "log_async",
+        "log_disabled",
+        "log_thread_count",
+        "enable_file"
+    )
 
     def __init__(
         self,
@@ -30,25 +50,27 @@ class Logger:
         use_log_name: bool = False,
         level_only_valid_for_console: bool = False,
         log_async: bool = False,
-        log_disabled: bool = False
+        log_disabled: bool = False,
+        enable_file: bool = True
     ) -> None:
         """
         Creates a logger with specific functions needed for server monitoring discord bot.
-        log_file_name (None): Log file name
-        log_folder ('.'): Absolute path to the log file's location
-        clear (False): Clear the (last used) log file from its contents
-        level (LEVEL.INFO): Sets the level of the logging done
-        log_to_console (True): Allows the logger to show logs in the console window if exists
-        storage_life_extender_mode (False): Stores the logs in memory instead of on storage media and only saves sometimes to preserve its lifetime
-        max_logfile_size (-1): Sets the maximum allowed log file size in MiB. By default, it's set to -1 meaning no limit.
-        max_logfile_lifetime (-1): Sets the maximum allowed log file life-time in Days. By default, it's set to -1 meaning no limit.
-        __print (stdout.write): The function to use to log to console.
-        __error (stderr.write): The function to use to log errors to console. If set to None __print will be used
-        use_caller_name (False): Allows the logger to use the caller functions name (with full call path) instead of the level. It only concerns logging to console.
-        use_file_names (True): Sets if the file name should be added to the beginning of the caller name. It only concerns logging to console.
-        use_log_name (False): Sets if the logger should include the file name's first part (split at the last '.'), to differentiate between multiple loggers on console only.
-        level_only_valid_for_console (False): Sets if the level set is only concerns the logging to console, or to file as well.
-        log_disabled (False): Disables logging, and disables warning message about no valid log destination
+        :param log_file_name: (None): Log file name. If not provided, no file will be created.
+        :param log_folder: ('.'): Absolute path to the log file's location
+        :param clear: (False): Clear the (last used) log file from its contents
+        :param level: (LEVEL.INFO): Sets the level of the logging done
+        :param log_to_console: (True): Allows the logger to show logs in the console window if exists
+        :param storage_life_extender_mode: (False): Stores the logs in memory instead of on storage media and only saves sometimes to preserve its lifetime
+        :param max_logfile_size: (-1): Sets the maximum allowed log file size in MiB. By default, it's set to -1 meaning no limit.
+        :param max_logfile_lifetime: (-1): Sets the maximum allowed log file life-time in Days. By default, it's set to -1 meaning no limit.
+        :param __print: (stdout.write): The function to use to log to console.
+        :param __error: (stderr.write): The function to use to log errors to console. If set to None __print will be used
+        :param use_caller_name: (False): Allows the logger to use the caller functions name (with full call path) instead of the level. It only concerns logging to console.
+        :param use_file_names: (True): Sets if the file name should be added to the beginning of the caller name. It only concerns logging to console.
+        :param use_log_name: (False): Sets if the logger should include the file name's first part (split at the last '.'), to differentiate between multiple loggers on console only.
+        :param level_only_valid_for_console: (False): Sets if the level set is only concerns the logging to console, or to file as well.
+        :param log_disabled: (False): Disables logging, and disables warning message about no valid log destination
+        :param enable_file: (True): Enables creating a logfile if a name is provided
         """
         self.log_file_name = log_file_name
         self.validate_folder(log_folder)
@@ -68,7 +90,8 @@ class Logger:
         self.level_only_valid_for_console = level_only_valid_for_console
         self.log_async = log_async
         self.log_thread_count = 0
-        self.log_disabled = log_disabled
+        self.log_disabled = log_disabled,
+        self.enable_file = enable_file
         if self.log_file_name is None and not self.log_to_console and not self.log_disabled:
             self.log_to_console = True
             self.warning("Logger is not disabled, but 'log_file_name' is None, and 'log_to_console' are disabled!")
@@ -104,7 +127,7 @@ class Logger:
             return [path.join(dir_path, fname) for fname in filenames if self.log_file_name.split(".")[-1] in fname]
 
     def __log_to_file(self, log_msg: str, flush: bool = False) -> None:
-        if self.log_file_name is None: return
+        if self.log_file_name is None or not self.enable_file: return
         if self.storage_life_extender_mode:
             self.stored_logs.append(log_msg)
         else:
