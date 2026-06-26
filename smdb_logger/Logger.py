@@ -90,7 +90,7 @@ class Logger:
         self.level_only_valid_for_console = level_only_valid_for_console
         self.log_async = log_async
         self.log_thread_count = 0
-        self.log_disabled = log_disabled,
+        self.log_disabled = log_disabled
         self.enable_file = enable_file
         if self.log_file_name is None and not self.log_to_console and not self.log_disabled:
             self.log_to_console = True
