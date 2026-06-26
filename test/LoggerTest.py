@@ -28,6 +28,9 @@ class TestClass:
         self.logger.error("Function G called")
         self.function_f()
 
+    def function_h(self):
+        self.logger.heartbeat("Function H called")
+
 if __name__ == "__main__":
     cls = TestClass()
     cls.logger.header("Test")
@@ -38,3 +41,4 @@ if __name__ == "__main__":
     cls.function_e()
     cls.function_f()
     cls.function_g()
+    cls.function_h()

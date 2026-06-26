@@ -193,9 +193,9 @@ class Logger:
             if self.use_log_name:
                 name = '.'.join(self.log_file_name.split('.')[:-1])
                 log_components[1] = name
-            msg = f"{COLOR.from_level(level).value}{self.__get_log_message(log_components, level)}{COLOR.END.value}{end}"
             if only_console:
-                msg = f"{COLOR.from_level(level).value}{data}{COLOR.END.value}"
+                log_components[3] = ""
+            msg = f"{COLOR.from_level(level).value}{self.__get_log_message(log_components, level)}{COLOR.END.value}{end}"
             if level == LEVEL.ERROR:
                 self.__error(msg)
             else:
