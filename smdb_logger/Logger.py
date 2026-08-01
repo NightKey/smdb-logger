@@ -2,7 +2,7 @@ import inspect
 import traceback
 from datetime import datetime, timedelta
 from time import time
-from os import path, rename, remove, walk, mkdir
+from os import path, rename, remove, walk, mkdir, getenv
 from sys import stdout, stderr
 from threading import Thread
 from typing import List, Dict, Any, Union, Callable, Optional
@@ -30,12 +30,14 @@ class Logger:
         "log_async",
         "log_disabled",
         "log_thread_count",
-        "enable_file"
+        "enable_file",
+        "enable_color"
     )
 
     def __init__(
         self,
-        log_file_name: str = None,
+        /,
+        log_file_name: Optional[str] = None,
         log_folder: str = ".",
         clear: bool = False,
         level: LEVEL = LEVEL.INFO,
@@ -51,7 +53,8 @@ class Logger:
         level_only_valid_for_console: bool = False,
         log_async: bool = False,
         log_disabled: bool = False,
-        enable_file: bool = True
+        enable_file: bool = True,
+        enable_color: bool = True,
     ) -> None:
         """
         Creates a logger with specific functions needed for server monitoring discord bot.
@@ -71,12 +74,12 @@ class Logger:
         :param level_only_valid_for_console: (False): Sets if the level set is only concerns the logging to console, or to file as well.
         :param log_disabled: (False): Disables logging, and disables warning message about no valid log destination
         :param enable_file: (True): Enables creating a logfile if a name is provided
+        :param enable_color: (True): Enables colorization of the console log (NO_COLOR environment variable will overwrite it to False if set)
         """
         self.log_file_name = log_file_name
         self.validate_folder(log_folder)
         self.log_folder = log_folder
         self.allowed = LEVEL.get_hierarchy(level)
-        self.log_to_console = log_to_console
         self.storage_life_extender_mode = storage_life_extender_mode
         self.stored_logs = []
         self.max_logfile_size = max_logfile_size
@@ -92,21 +95,27 @@ class Logger:
         self.log_thread_count = 0
         self.log_disabled = log_disabled
         self.enable_file = enable_file
-        if self.log_file_name is None and not self.log_to_console and not self.log_disabled:
-            self.log_to_console = True
+        self.enable_color = enable_color
+        if getenv("NO_COLOR", False):
+            self.enable_color = False
+        if self.log_file_name is None and not log_to_console and not self.log_disabled:
             self.warning("Logger is not disabled, but 'log_file_name' is None, and 'log_to_console' are disabled!")
             self.warning("To disable this message, set 'log_disabled' to True")
-            self.log_to_console = False
-        if clear:
+        if clear and log_file_name is None:
+            self.warning("Clear is set but 'log_file_name' is None!")
+            self.warning("Can't clear if no file name is set!")
+        if clear and log_file_name is not None:
             with open(path.join(log_folder, log_file_name), "w"):
                 pass
+        self.log_to_console = log_to_console
 
-    def __get_date(self, timestamp: float = None) -> datetime:
+    def __get_date(self, timestamp: Optional[float] = None) -> datetime:
         if timestamp is None:
             timestamp = time()
         return datetime.fromtimestamp(timestamp)
 
     def __check_logfile(self) -> None:
+        if self.log_file_name is None: return
         if self.max_logfile_size != -1 and path.exists(path.join(self.log_folder, self.log_file_name)) and (path.getsize(path.join(self.log_folder, self.log_file_name)) / (1024 ^ 2)) > self.max_logfile_size:
             tmp = self.log_file_name.split(".")
             tmp[0] += str(self.__get_date().strftime(r"%y.%m.%d-%I"))
@@ -123,8 +132,9 @@ class Logger:
                     remove(name)
 
     def __get_all_logfile_names(self) -> List[str]:
-        for dir_path, _, filenames in walk(self.log_folder):
-            return [path.join(dir_path, fname) for fname in filenames if self.log_file_name.split(".")[-1] in fname]
+        if self.log_file_name is None: return []
+        (dir_path, _, filenames) = walk(self.log_folder).__next__()
+        return [path.join(dir_path, fname) for fname in filenames if self.log_file_name.split(".")[-1] in fname]
 
     def __log_to_file(self, log_msg: str, flush: bool = False) -> None:
         if self.log_file_name is None or not self.enable_file: return
@@ -181,7 +191,7 @@ class Logger:
         if level not in self.allowed and not self.level_only_valid_for_console: return
         if counter is None:
             counter = str(self.__get_date().strftime(r"%Y.%m.%d-%H:%M:%S"))
-        log_components = {0: "", 1: "", "counter": counter, 3: level, "data": data}
+        log_components = {0: "", 1: "", "counter": counter, 3: level.value, "data": data}
         if self.header_used and level != LEVEL.HEADER:
             log_components[0] = "\t"
         if not only_console and (self.level_only_valid_for_console or level in self.allowed):
@@ -195,7 +205,7 @@ class Logger:
                 log_components[1] = name
             if only_console:
                 log_components[3] = ""
-            msg = f"{COLOR.from_level(level).value}{self.__get_log_message(log_components, level)}{COLOR.END.value}{end}"
+            msg = f"{COLOR.from_level(level).value if self.enable_color else ''}{self.__get_log_message(log_components, level)}{COLOR.END.value if self.enable_color else ''}{end}"
             if level == LEVEL.ERROR:
                 self.__error(msg)
             else:
