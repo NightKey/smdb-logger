@@ -32,8 +32,8 @@ If the caller name is shown and the caller was the body of the file, a line numb
  | storage_life_extender_mode   | Limits the writes to the file by caching the data                                                  |       False       |
  | max_logfile_size             | Limits the size of one log file in MB                                                              |   -1 (No limit)   |
  | max_logfile_lifetime         | Limits the time a log file can live (except the currently used one)                                |   -1 (No limit)   |
- | __print                      | Callable for consol logging                                                                        |   stdout.write    |
- | __error                      | Callable for consol error logging. None sets to be __print                                         |   stderr.write    |
+ | out                          | The standard output TextIO.                                                                        |      stdout       |
+ | err                          | The standard error TextIO. If set to None 'out' will be used                                       |      stderr       |
  | use_caller_name              | Use the caller's name in consol logging instead of the level                                       |       False       |
  | use_file_names               | Use the file name whe using the caller name or not                                                 |       True        |
  | use_log_name                 | Use the log file name to differenciate between multiple loggers on console                         |       False       |

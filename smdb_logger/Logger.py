@@ -5,7 +5,7 @@ from time import time
 from os import path, rename, remove, walk, mkdir, getenv
 from sys import stdout, stderr
 from threading import Thread
-from typing import List, Dict, Any, Union, Callable, Optional
+from typing import List, Dict, Any, Union, Optional, TextIO
 
 from smdb_logger import LEVEL, COLOR
 
@@ -19,8 +19,8 @@ class Logger:
         "stored_logs",
         "max_logfile_size",
         "max_logfile_lifetime",
-        "__print",
-        "__error",
+        "out",
+        "err",
         "use_caller_name",
         "use_file_names",
         "use_log_name",
@@ -45,8 +45,8 @@ class Logger:
         storage_life_extender_mode: bool = False,
         max_logfile_size: int = -1,
         max_logfile_lifetime: int = -1,
-        __print: Callable = stdout.write,
-        __error: Callable = stderr.write,
+        out: TextIO = stdout,
+        err: Optional[TextIO] = stderr,
         use_caller_name: bool = False,
         use_file_names: bool = True,
         use_log_name: bool = False,
@@ -66,8 +66,8 @@ class Logger:
         :param storage_life_extender_mode: (False): Stores the logs in memory instead of on storage media and only saves sometimes to preserve its lifetime
         :param max_logfile_size: (-1): Sets the maximum allowed log file size in MiB. By default, it's set to -1 meaning no limit.
         :param max_logfile_lifetime: (-1): Sets the maximum allowed log file life-time in Days. By default, it's set to -1 meaning no limit.
-        :param __print: (stdout.write): The function to use to log to console.
-        :param __error: (stderr.write): The function to use to log errors to console. If set to None __print will be used
+        :param out: (stdout): The standard output TextIO.
+        :param err: (stderr): The standard error TextIO. If set to None 'out' will be used
         :param use_caller_name: (False): Allows the logger to use the caller functions name (with full call path) instead of the level. It only concerns logging to console.
         :param use_file_names: (True): Sets if the file name should be added to the beginning of the caller name. It only concerns logging to console.
         :param use_log_name: (False): Sets if the logger should include the file name's first part (split at the last '.'), to differentiate between multiple loggers on console only.
@@ -84,8 +84,8 @@ class Logger:
         self.stored_logs = []
         self.max_logfile_size = max_logfile_size
         self.max_logfile_lifetime = max_logfile_lifetime
-        self.__print = __print
-        self.__error = __error if __error is not None else __print
+        self.out = out if self.__is_valid_console(out) else None
+        self.err = err if self.__is_valid_console(err) else self.out
         self.use_caller_name = use_caller_name
         self.use_file_names = use_file_names
         self.use_log_name = use_log_name
@@ -107,12 +107,15 @@ class Logger:
         if clear and log_file_name is not None:
             with open(path.join(log_folder, log_file_name), "w"):
                 pass
-        self.log_to_console = log_to_console
+        self.log_to_console = log_to_console and (self.out is not None and self.err is not None)
 
     def __get_date(self, timestamp: Optional[float] = None) -> datetime:
         if timestamp is None:
             timestamp = time()
         return datetime.fromtimestamp(timestamp)
+
+    def __is_valid_console(self, console: Optional[TextIO]) -> bool:
+        return console is not None and hasattr(console, "closed") and not console.closed and hasattr(console, "mode") and console.mode in ['w', 'W', 'a', 'A']
 
     def __check_logfile(self) -> None:
         if self.log_file_name is None: return
@@ -196,7 +199,7 @@ class Logger:
             log_components[0] = "\t"
         if not only_console and (self.level_only_valid_for_console or level in self.allowed):
             self.__log_to_file(self.__get_log_message(log_components, level))
-        if self.log_to_console and level in self.allowed:
+        if self.log_to_console and level in self.allowed and self.out is not None:
             if self.use_caller_name:
                 caller = self.__get_caller_name()
                 log_components[3] = caller
@@ -207,9 +210,9 @@ class Logger:
                 log_components[3] = ""
             msg = f"{COLOR.from_level(level).value if self.enable_color else ''}{self.__get_log_message(log_components, level)}{COLOR.END.value if self.enable_color else ''}{end}"
             if level == LEVEL.ERROR:
-                self.__error(msg)
+                self.err.write(msg)
             else:
-                self.__print(msg)
+                self.out.write(msg)
 
     def __threaded_log(self, level: LEVEL, data: str, counter: str, end: str, only_console: bool) -> None:
         self.__log(level, data, counter, end, only_console)
