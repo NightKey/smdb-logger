@@ -1,3 +1,5 @@
+from time import sleep
+
 from smdb_logger import Logger, LEVEL
 
 class TestClass:
@@ -14,18 +16,22 @@ class TestClass:
 
     def function_d(self):
         self.logger.debug("Function D called")
+        sleep(0.1)
         self.function_a()
 
     def function_e(self):
         self.logger.trace("Function E called")
+        sleep(0.1)
         self.function_d()
 
     def function_f(self):
         self.logger.warning("Function F called")
+        sleep(0.1)
         self.function_b()
 
     def function_g(self):
         self.logger.error("Function G called")
+        sleep(0.1)
         self.function_f()
 
     def function_h(self):
@@ -34,11 +40,19 @@ class TestClass:
 if __name__ == "__main__":
     cls = TestClass()
     cls.logger.header("Test")
+    sleep(0.1)
     cls.function_a()
+    sleep(0.1)
     cls.function_b()
+    sleep(0.1)
     cls.function_c()
+    sleep(0.1)
     cls.function_d()
+    sleep(0.1)
     cls.function_e()
+    sleep(0.1)
     cls.function_f()
+    sleep(0.1)
     cls.function_g()
+    sleep(0.1)
     cls.function_h()

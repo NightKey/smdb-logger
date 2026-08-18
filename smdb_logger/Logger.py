@@ -17,6 +17,7 @@ class Logger:
         "log_to_console",
         "storage_life_extender_mode",
         "stored_logs",
+        "max_caller_chain_size",
         "max_logfile_size",
         "max_logfile_lifetime",
         "out",
@@ -43,6 +44,7 @@ class Logger:
         level: LEVEL = LEVEL.INFO,
         log_to_console: bool = True,
         storage_life_extender_mode: bool = False,
+        max_caller_chain_size: int = -1,
         max_logfile_size: int = -1,
         max_logfile_lifetime: int = -1,
         out: TextIO = stdout,
@@ -64,6 +66,7 @@ class Logger:
         :param level: (LEVEL.INFO): Sets the level of the logging done
         :param log_to_console: (True): Allows the logger to show logs in the console window if exists
         :param storage_life_extender_mode: (False): Stores the logs in memory instead of on storage media and only saves sometimes to preserve its lifetime
+        :param max_caller_chain_size: (-1): Sets the maximum number of caller functions present in the log. It is set to -1 meaning no limit.
         :param max_logfile_size: (-1): Sets the maximum allowed log file size in MiB. By default, it's set to -1 meaning no limit.
         :param max_logfile_lifetime: (-1): Sets the maximum allowed log file life-time in Days. By default, it's set to -1 meaning no limit.
         :param out: (stdout): The standard output TextIO.
@@ -81,6 +84,7 @@ class Logger:
         self.log_folder = log_folder
         self.allowed = LEVEL.get_hierarchy(level)
         self.storage_life_extender_mode = storage_life_extender_mode
+        self.max_caller_chain_size = max_caller_chain_size
         self.stored_logs = []
         self.max_logfile_size = max_logfile_size
         self.max_logfile_lifetime = max_logfile_lifetime
@@ -155,8 +159,8 @@ class Logger:
                 self.stored_logs = []
         self.__check_logfile()
 
-    def __get_caller_name(self):
-        frames = inspect.getouterframes(inspect.currentframe().f_back.f_back, 8)
+    def __get_caller_chain(self):
+        frames = inspect.getouterframes(inspect.currentframe().f_back.f_back, 3)
         caller = ""
         start = 0
         index = 0
@@ -168,17 +172,23 @@ class Logger:
                 break
             index += 1
         previous_filename = path.basename(frames[start].filename)
+        chain = []
         if caller == "<module>":
-            return f"{previous_filename}->line {frames[start].lineno}" if self.use_file_names else f"line {frames[start].lineno}"
-        for frame in frames[start:]:
-            if frame.function in ["<module>", "_run_event", "_run_once", "_bootstrap_inner"] or path.basename(frame.filename) in ["threading.py"]:
-                break
-            if path.basename(frame.filename) != previous_filename and self.use_file_names:
-                caller = f"{frame.function}->{previous_filename}->{caller}"
-                previous_filename = path.basename(frame.filename)
-            else:
-                caller = f"{frame.function}->{caller}"
-        return f"{previous_filename}->{caller}" if self.use_file_names else caller
+            chain.append(f"line {frames[start].lineno}")
+        else:
+            chain.append(caller)
+            for frame in frames[start + 1:]:
+                if path.basename(frame.filename) != previous_filename and self.use_file_names:
+                    chain.append(previous_filename)
+                    previous_filename = path.basename(frame.filename)
+                if self.max_caller_chain_size != -1 and len(chain) == self.max_caller_chain_size:
+                    break
+                if frame.function in ["<module>", "_run_event", "_run_once", "_bootstrap_inner"] or path.basename(frame.filename) in ["threading.py"]:
+                    break
+                chain.append(frame.function)
+        if self.use_file_names:
+            chain.append(previous_filename)
+        return "->".join(reversed(chain))
 
     def __get_log_message(self, components: Dict[Any, str], level: LEVEL) -> str:
         string = ""
@@ -201,7 +211,7 @@ class Logger:
             self.__log_to_file(self.__get_log_message(log_components, level))
         if self.log_to_console and level in self.allowed and self.out is not None:
             if self.use_caller_name:
-                caller = self.__get_caller_name()
+                caller = self.__get_caller_chain()
                 log_components[3] = caller
             if self.use_log_name:
                 name = '.'.join(self.log_file_name.split('.')[:-1])

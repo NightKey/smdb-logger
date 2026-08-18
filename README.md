@@ -30,6 +30,7 @@ If the caller name is shown and the caller was the body of the file, a line numb
  | level                        | Sets the minimum level for the logger to show                                                      |       INFO        |
  | log_to_console               | Sets to log to console too                                                                         |       True        |
  | storage_life_extender_mode   | Limits the writes to the file by caching the data                                                  |       False       |
+ | max_caller_chain_size        | Limits the maximum size of the call chain shown                                                    |   -1 (No limit)   |
  | max_logfile_size             | Limits the size of one log file in MB                                                              |   -1 (No limit)   |
  | max_logfile_lifetime         | Limits the time a log file can live (except the currently used one)                                |   -1 (No limit)   |
  | out                          | The standard output TextIO.                                                                        |      stdout       |
