@@ -181,7 +181,7 @@ class Logger:
                 if path.basename(frame.filename) != previous_filename and self.use_file_names:
                     chain.append(previous_filename)
                     previous_filename = path.basename(frame.filename)
-                if self.max_caller_chain_size != -1 and len(chain) == self.max_caller_chain_size:
+                if self.max_caller_chain_size != -1 and len(chain) >= self.max_caller_chain_size:
                     break
                 if frame.function in ["<module>", "_run_event", "_run_once", "_bootstrap_inner"] or path.basename(frame.filename) in ["threading.py"]:
                     break
