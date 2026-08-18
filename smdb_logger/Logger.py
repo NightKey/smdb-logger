@@ -161,6 +161,7 @@ class Logger:
 
     def __get_caller_chain(self):
         frames = inspect.getouterframes(inspect.currentframe().f_back.f_back, 3)
+        should_add_filename = True
         caller = ""
         start = 0
         index = 0
@@ -181,12 +182,14 @@ class Logger:
                 if path.basename(frame.filename) != previous_filename and self.use_file_names:
                     chain.append(previous_filename)
                     previous_filename = path.basename(frame.filename)
+                    should_add_filename = False
                 if self.max_caller_chain_size != -1 and len(chain) >= self.max_caller_chain_size:
                     break
                 if frame.function in ["<module>", "_run_event", "_run_once", "_bootstrap_inner"] or path.basename(frame.filename) in ["threading.py"]:
                     break
+                should_add_filename = True
                 chain.append(frame.function)
-        if self.use_file_names:
+        if self.use_file_names and should_add_filename:
             chain.append(previous_filename)
         return "->".join(reversed(chain))
 
