@@ -47,7 +47,7 @@ class Logger:
         max_caller_chain_size: int = -1,
         max_logfile_size: int = -1,
         max_logfile_lifetime: int = -1,
-        out: TextIO = stdout,
+        out: Optional[TextIO] = stdout,
         err: Optional[TextIO] = stderr,
         use_caller_name: bool = False,
         use_file_names: bool = True,
@@ -100,6 +100,7 @@ class Logger:
         self.log_disabled = log_disabled
         self.enable_file = enable_file
         self.enable_color = enable_color
+        self.log_to_console = True
         if getenv("NO_COLOR", False):
             self.enable_color = False
         if self.log_file_name is None and not log_to_console and not self.log_disabled:
@@ -371,3 +372,37 @@ class Logger:
         :return:
         """
         self.__log_common(LEVEL.EXCEPTION, ''.join(traceback.format_exception(None, exception, exception.__traceback__)), None, "\n", False)
+
+    def copy(self, **kwargs) -> 'Logger':
+        """Creates a copy of the current Logger with the provided changes."""
+        return Logger(
+            log_file_name=self.log_file_name if "log_file_name" not in kwargs else kwargs["log_file_name"],
+            log_folder=self.log_folder if "log_folder" not in kwargs else kwargs["log_folder"],
+            clear=False if "clear" not in kwargs else kwargs["clear"],
+            level=self.allowed[0] if "level" not in kwargs else kwargs["level"],
+            log_to_console=self.log_to_console if "log_to_console" not in kwargs else kwargs["log_to_console"],
+            storage_life_extender_mode=self.storage_life_extender_mode if "storage_life_extender_mode" not in kwargs else kwargs["storage_life_extender_mode"],
+            max_caller_chain_size=self.max_caller_chain_size if "max_caller_chain_size" not in kwargs else kwargs["max_caller_chain_size"],
+            max_logfile_size=self.max_logfile_size if "max_logfile_size" not in kwargs else kwargs["max_logfile_size"],
+            max_logfile_lifetime=self.max_logfile_lifetime if "max_logfile_lifetime" not in kwargs else kwargs["max_logfile_lifetime"],
+            out=self.out if "out" not in kwargs else kwargs["out"],
+            err=self.err if "err" not in kwargs else kwargs["err"],
+            use_caller_name=self.use_caller_name if "use_caller_name" not in kwargs else kwargs["use_caller_name"],
+            use_file_names=self.use_file_names if "use_file_names" not in kwargs else kwargs["use_file_names"],
+            use_log_name=self.use_log_name if "use_log_name" not in kwargs else kwargs["use_log_name"],
+            level_only_valid_for_console=self.level_only_valid_for_console if "level_only_valid_for_console" not in kwargs else kwargs["level_only_valid_for_console"],
+            log_async=self.log_async if "log_async" not in kwargs else kwargs["log_async"],
+            log_disabled=self.log_disabled if "log_disabled" not in kwargs else kwargs["log_disabled"],
+            enable_file=self.enable_file if "enable_file" not in kwargs else kwargs["enable_file"],
+            enable_color=self.enable_color if "enable_color" not in kwargs else kwargs["enable_color"],
+        )
+
+    def __ne__(self, other):
+        if not isinstance(other, Logger):
+            return True
+        for key in self.__slots__:
+            if key in ["stored_logs", "header_used"]:
+                continue
+            if self.__getattribute__(key) != other.__getattribute__(key):
+                return True
+        return False

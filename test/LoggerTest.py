@@ -37,6 +37,20 @@ class TestClass:
     def function_h(self):
         self.logger.heartbeat("Function H called")
 
+    def copy_test_1(self):
+        tmp = self.logger.copy()
+        if self.logger != tmp:
+            print("Clean Copy Failed")
+        else:
+            print("Clean Copy Passed")
+
+    def copy_test_2(self):
+        tmp = self.logger.copy(enable_color=False, log_to_console=False)
+        if self.logger != tmp and tmp.enable_color != self.logger.enable_color and tmp.log_to_console != self.logger.log_to_console:
+            print("Clean Copy Passed")
+        else:
+            print("Clean Copy Failed")
+
 if __name__ == "__main__":
     cls = TestClass()
     cls.logger.header("Test")
@@ -56,3 +70,7 @@ if __name__ == "__main__":
     cls.function_g()
     sleep(0.1)
     cls.function_h()
+    sleep(0.1)
+    cls.copy_test_1()
+    sleep(0.1)
+    cls.copy_test_2()
